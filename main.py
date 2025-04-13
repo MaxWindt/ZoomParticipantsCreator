@@ -39,7 +39,8 @@ class ZoomLinkOpener:
                 await page.goto(link)
                 await page.get_by_role("button", name="Accept Cookies").click()
                 await page.get_by_role("button", name="I Agree").click()
-                await page.get_by_label("Your Name").fill("scaccas1")
+                await page.get_by_label("Your Name").fill(generate_random_name())
+                await page.get_by_label("Your Name").press("Enter")
                 await page.get_by_role("button", name="Join").click()
                 try:
                     await page.get_by_label("More meeting control").evaluate(
@@ -177,6 +178,72 @@ def main(page: ft.Page):
             spacing=0,
         )
     )
+
+
+import random
+import string
+
+
+def generate_random_name():
+    # Random prefixes
+    prefixes = ["DE", "DE/EN", "EN", "NT"]
+
+    # Random names
+    german_names = [
+        "Hans",
+        "Heidi",
+        "Lena",
+        "Matthias",
+        "Sabine",
+        "Klaus",
+        "Maria",
+        "Dieter",
+        "Anna",
+        "Markus",
+    ]
+
+    spanish_names = [
+        "Alejandro",
+        "Elena",
+        "Diego",
+        "Sofía",
+        "Javier",
+        "Isabella",
+        "Carlos",
+        "Carmen",
+        "Antonio",
+        "Lucía",
+    ]
+
+    us_names = [
+        "John",
+        "Emily",
+        "Michael",
+        "Sarah",
+        "William",
+        "Jessica",
+        "David",
+        "Ashley",
+        "James",
+        "Jennifer",
+    ]
+
+    # Merge all names
+    names = german_names + spanish_names + us_names
+
+    # Generate random prefix
+    random_prefix = random.choice(prefixes)
+
+    # Generate random name
+    random_name = random.choice(names)
+
+    # Generate unique identifier (random letters)
+    unique_string = "".join(random.choices(string.ascii_lowercase + string.digits, k=5))
+
+    # Concatenate prefix, name, and unique string
+    random_string = f"{random_prefix} - {random_name} - {unique_string}"
+
+    return random_string
 
 
 # Run the application

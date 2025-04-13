@@ -6,4 +6,4 @@ dependencies:
   - pip:
       - playwright==1.51.0
 rccPostInstall:
-  - python rccPostInstallScript.py
+  - playwright install chromium
