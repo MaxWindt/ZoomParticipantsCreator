@@ -1,0 +1,9 @@
+channels:
+  - conda-forge
+dependencies:
+  - python==3.10.15
+  - flet==0.24.1
+  - pip:
+      - playwright==1.51.0
+rccPostInstall:
+  - python rccPostInstallScript.py
