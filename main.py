@@ -24,18 +24,39 @@ class ZoomLinkOpener:
                     "--mute-audio --no-first-run --disable-sync --disable-extensions --disable-component-update --disable-background-networking"
                 ],
             )
-            
-            # Create a list of tasks to open browser contexts concurrently
-            tasks = []
+            # Create the specified number of browser contexts
             for i in range(count):
                 if not self.running:
                     break
-                tasks.append(self.create_browser_context(browser, link, i+1))
-            
-            # Run all the browser context creation tasks concurrently
-            if tasks:
-                # Use gather with return_exceptions=True to prevent one failure from stopping all tasks
-                await asyncio.gather(*tasks, return_exceptions=True)
+
+                context = await browser.new_context(
+                    viewport={"width": 420, "height": 680},
+                    locale="en-US",
+                    permissions=[],
+                )
+                self.browser_contexts.append(context)
+                page = await context.new_page()
+                await page.goto(link)
+                # await page.get_by_role("button", name="Accept Cookies").click()
+                await page.get_by_role("button", name="I Agree").click()
+                await page.get_by_label("Your Name").fill(generate_random_name())
+                await page.get_by_label("Your Name").press("Enter")
+                await page.get_by_role("button", name="Join").click()
+                # try:
+                #     await page.get_by_label("More meeting control").evaluate(
+                #         """
+                #         button => button.click()
+                #         """
+                #     )
+                #     await page.get_by_label("Stop Incoming Video").evaluate(
+                #         """
+                #         button => button.click()
+                #         """
+                #     )
+                #     print("Stopped incoming video")
+
+                # except Exception:
+                #     print("Stopping incoming video was not successful")
 
             # Wait until stop button is clicked
             await self.stop_event.wait()
@@ -52,66 +73,6 @@ class ZoomLinkOpener:
 
             if on_complete:
                 await on_complete()
-    
-    async def create_browser_context(self, browser, link, index=0):
-        """Create a single browser context and navigate to the Zoom meeting"""
-        try:
-            context = await browser.new_context(
-                viewport={"width": 420, "height": 680},
-                locale="en-US",
-                permissions=[],
-            )
-            self.browser_contexts.append(context)
-            page = await context.new_page()
-            
-            # Add timeout to page operations
-            page.set_default_timeout(30000)  # 30 seconds timeout
-            
-            await page.goto(link)
-            
-            try:
-                # Wait for and click "Accept Cookies" if it exists
-                if await page.get_by_role("button", name="Accept Cookies").count() > 0:
-                    await page.get_by_role("button", name="Accept Cookies").click()
-                
-                # Wait for and click "I Agree" if it exists
-                if await page.get_by_role("button", name="I Agree").count() > 0:
-                    await page.get_by_role("button", name="I Agree").click()
-                
-                await page.get_by_label("Your Name").fill(generate_random_name())
-                await page.get_by_label("Your Name").press("Enter")
-                await page.get_by_role("button", name="Join").click()
-                
-                print(f"Participant {index} joined successfully")
-                
-                # Try to stop incoming video to save bandwidth
-                try:
-                    await asyncio.sleep(1)  # Short delay to ensure UI is loaded
-                    if await page.get_by_label("More meeting control").count() > 0:
-                        await page.get_by_label("More meeting control").evaluate(
-                            """
-                            button => button.click()
-                            """
-                        )
-                        
-                        if await page.get_by_label("Stop Incoming Video").count() > 0:
-                            await page.get_by_label("Stop Incoming Video").evaluate(
-                                """
-                                button => button.click()
-                                """
-                            )
-                            print(f"Stopped incoming video for participant {index}")
-                except Exception as e:
-                    print(f"Stopping incoming video was not successful for participant {index}: {str(e)}")
-            except Exception as e:
-                print(f"Error during meeting join process for participant {index}: {str(e)}")
-                # Close this context if there was an error during the join process
-                await context.close()
-                # Remove from tracking list
-                if context in self.browser_contexts:
-                    self.browser_contexts.remove(context)
-        except Exception as e:
-            print(f"Error creating browser context for participant {index}: {str(e)}")
 
 
 def main(page: ft.Page):
@@ -152,15 +113,8 @@ def main(page: ft.Page):
                 status_text.color = ft.colors.RED
                 page.update()
                 return
-            
-            # Add a warning for high numbers of participants
-            if count > 10:
-                status_text.value = "Warning: Creating many participants may use significant system resources"
-                status_text.color = ft.colors.ORANGE
-                page.update()
-                await asyncio.sleep(2)  # Show warning for 2 seconds
 
-            status_text.value = f"Joining with {count} participants..."
+            status_text.value = "Joining..."
             status_text.color = ft.colors.BLUE
             start_button.text = "Stop"
             page.update()
